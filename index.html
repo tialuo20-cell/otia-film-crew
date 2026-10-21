@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>OTIA 小剧组 · 招聘日 — G5 UOI</title>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.min.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body, #root { margin: 0; padding: 0; min-height: 100vh; background: #0F1419; }
+  body { overscroll-behavior: none; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo } = React;
+const { Camera, Users, Clapperboard, Video, ClipboardList, Wrench, Scissors, Film, Lightbulb, Mic, Palette, PenTool, Star, Award, Lock, Check, Sparkles, RotateCcw } = lucideReact;
+
+/* ============================================================
+   OTIA 小剧组 · 招聘日  ——  G5 UOI「电影的幕后团队」
+   三幕 + 彩蛋 (8 基础 + 4 进阶)
+   ============================================================ */
+
+const ROLES = [
+  { id: "director",  zh: "导演",        en: "Director",              color: "#E74C3C", Icon: Clapperboard, emoji: "🎬",
+    duties: ["和大家商量希望观众看懂什么", "听取意见，协调表演和拍摄", "发现问题，带着大家再试一次"],
+    value: "把所有人的想法汇成一个方向，让故事被看懂。", prop: "导演椅" },
+  { id: "actor",     zh: "演员",        en: "Actor / Actress",       color: "#9B59B6", Icon: Star,         emoji: "🎭",
+    duties: ["想一想人物此刻的感受", "用动作、表情和台词表达", "留意同伴，配合完成表演"],
+    value: "用表演让观众走进故事、感受人物。", prop: "剧本" },
+  { id: "camera",    zh: "摄影师",      en: "Cinematographer",       color: "#3498DB", Icon: Camera,       emoji: "📷",
+    duties: ["保证人物和重要道具都在画面里", "拿稳设备，选好拍摄位置", "和组员一起检查声音是否清楚"],
+    value: "决定观众从哪个角度看故事。", prop: "取景框" },
+  { id: "script",    zh: "场记",        en: "Script Supervisor",     color: "#1ABC9C", Icon: ClipboardList,emoji: "📋",
+    duties: ["记下拍摄次数和可用的片段", "记录哪里需要重来", "留意人物和道具的位置"],
+    value: "是剪辑师的记忆，让每一次拍摄都对得上。", prop: "场记板" },
+  { id: "assistant", zh: "副导演",      en: "Assistant Director",    color: "#F39C12", Icon: Users,        emoji: "📣",
+    duties: ["提醒大家准备", "确认下一步做什么", "留意时间，让拍摄顺利进行"],
+    value: "让计划真正落地，不让任何一个人掉队。", prop: "对讲机" },
+  { id: "props",     zh: "剧务",        en: "Props & Logistics",     color: "#D35400", Icon: Wrench,       emoji: "🧰",
+    duties: ["准备、摆放和收回道具", "整理拍摄场地", "帮助大家找到需要的物品"],
+    value: "让每一个细节都准备到位，故事才真实。", prop: "道具箱" },
+  { id: "editor",    zh: "剪辑师",      en: "Film Editor",           color: "#16A085", Icon: Scissors,     emoji: "✂️",
+    duties: ["挑选合适的片段", "按顺序连接画面", "配合声音，让故事表达清楚"],
+    value: "让零散的镜头变成一个完整的故事。", prop: "时间线" },
+  { id: "doc",       zh: "纪录片导演",  en: "Documentary Director",  color: "#6b7c3f", Icon: Film,         emoji: "🎞️",
+    duties: ["观察真实的拍摄过程", "记录合作、困难和解决办法", "让观众了解电影背后的故事"],
+    value: "让观众看到电影背后真实的合作与努力。", prop: "跟拍机" },
+];
+
+const ADVANCED = [
+  { id: "light",   zh: "灯光师",     en: "Gaffer",            color: "#F1C40F", Icon: Lightbulb, emoji: "💡",
+    duties: ["设计光线营造情绪", "避免人物脸上出现杂影", "配合摄影调整明暗"],
+    value: "用光线讲故事，让观众感受到时间和心情。", prop: "柔光箱" },
+  { id: "sound",   zh: "录音师",     en: "Sound Mixer",       color: "#2ECC71", Icon: Mic,       emoji: "🎙️",
+    duties: ["收清台词和环境声", "减少杂音干扰", "配合摄影检查音量"],
+    value: "让每一句台词都听得到、每一段氛围都到位。", prop: "吊杆麦克风" },
+  { id: "art",     zh: "美术指导",   en: "Production Designer",color: "#E67E22", Icon: Palette,   emoji: "🎨",
+    duties: ["设计场景的整体风格", "选择颜色、布景与陈设", "保证视觉统一"],
+    value: "决定电影看起来像什么，让故事的世界立起来。", prop: "色卡" },
+  { id: "writer",  zh: "编剧",       en: "Screenwriter",      color: "#8E44AD", Icon: PenTool,   emoji: "✍️",
+    duties: ["写出台词和场景", "设计人物和故事走向", "与导演一起打磨情节"],
+    value: "把一个好点子变成一个可以被拍出来的故事。", prop: "剧本夹" },
+];
+
+const CHALLENGES = [
+  { q: "大家想法不同，一直不能开始。",
+    main: "director", sub: "assistant",
+    hint: "谁来把大家的想法汇成一个方向？谁又能帮忙协调时间？",
+    okMain: "导演站起来说：我们先定一个目标，再试一次。",
+    okSub:  "副导演接着补充：好，我们用两分钟定下来，然后开拍。",
+    noMain: "这个角色更适合处理______方面的问题。再想想谁负责统一想法？" },
+  { q: "拍完才发现，有人没进入画面。",
+    main: "camera", sub: "script",
+    hint: "谁的眼睛要一直盯着取景框？谁在旁边记录位置？",
+    okMain: "摄影师说：下次开拍前我喊一次'人、道具都在'，大家再确认。",
+    okSub:  "场记补充：我会在板子上记下谁在画面里，开拍前和摄影对一遍。",
+    noMain: "这个角色不是负责画面的哦。谁决定观众看到什么？" },
+  { q: "拍了好几次，忘记哪一次最好。",
+    main: "script", sub: "editor",
+    hint: "谁手里有每一次拍摄的记录？谁最后会挑选片段？",
+    okMain: "场记翻开记录本：第 2 次声音最清楚，第 4 次表演最到位。",
+    okSub:  "剪辑师说：那我把这两段标记起来，后期就用它们。",
+    noMain: "这个角色不负责记录哦。谁手里有每一次的拍摄笔记？" },
+  { q: "准备开拍，道具却找不到了。",
+    main: "props", sub: "assistant",
+    hint: "谁负责准备道具？谁能在现场帮忙协调？",
+    okMain: "剧务说：道具清单我这儿有，大家跟我一起找。",
+    okSub:  "副导演补充：我给大家两分钟，然后我们准时开拍。",
+    noMain: "这个角色不负责道具哦。谁管道具箱？" },
+];
+
+const C = {
+  bg:       "#0F1419",
+  panel:    "#1C1C2E",
+  panel2:   "#2A2A3E",
+  gold:     "#F5B041",
+  olive:    "#6b7c3f",
+  cream:    "#FAF3E0",
+  cream2:   "#E8DCC4",
+  accent:   "#E74C3C",
+  text:     "#F5E6C8",
+  muted:    "#9A8C75",
+  success:  "#2ECC71",
+  warn:     "#E67E22",
+};
+
+const base = {
+  fontFamily: `-apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif`,
+  color: C.text,
+};
+
+function FilmCrewInteractive() {
+  const [act, setAct]             = useState(1);
+  const [explored, setExplored]   = useState(new Set());
+  const [bookmarks, setBookmarks] = useState(new Set());
+  const [solved, setSolved]       = useState(new Set());
+  const [current, setCurrent]     = useState(0);
+  const [myRole, setMyRole]       = useState(null);
+  const [myName, setMyName]       = useState("");
+  const [myWhy, setMyWhy]         = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [expandedAdv, setExpandedAdv] = useState(null);
+  const [expanded, setExpanded]   = useState(null);
+  const [mainGuess, setMainGuess] = useState(null);
+  const [subGuess, setSubGuess]   = useState(null);
+  const [toast, setToast]         = useState(null);
+
+  const allSolved = solved.size === CHALLENGES.length;
+  const progress  = useMemo(() => `${explored.size}/${ROLES.length} 探索 · ${solved.size}/${CHALLENGES.length} 通关`, [explored, solved]);
+
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 1800); };
+
+  const reset = () => {
+    setAct(1); setExplored(new Set()); setBookmarks(new Set());
+    setSolved(new Set()); setCurrent(0); setMyRole(null);
+    setMyName(""); setMyWhy(""); setShowAdvanced(false);
+  };
+
+  const Header = () => (
+    <div style={{ background: `linear-gradient(180deg, ${C.panel} 0%, ${C.bg} 100%)`, padding: "14px 20px 10px", borderBottom: `2px solid ${C.gold}` }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ background: C.gold, color: C.bg, padding: "4px 10px", fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>OTIA · G5</div>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: 1 }}>🎬 小剧组 · 招聘日</div>
+            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>The Making of a Film Crew</div>
+          </div>
+        </div>
+        <div style={{ fontSize: 11, color: C.muted }}>{progress}</div>
+      </div>
+      <div style={{ display: "flex", gap: 6 }}>
+        {[
+          { n: 1, t: "认识候选人", en: "Meet the Crew" },
+          { n: 2, t: "紧急求助",   en: "Crisis Call"   },
+          { n: 3, t: "我的剧组名片", en: "My Crew Card"  },
+        ].map((a) => (
+          <button key={a.n} onClick={() => setAct(a.n)}
+            style={{ flex: 1, padding: "8px 6px", background: act === a.n ? C.gold : "rgba(255,255,255,0.04)",
+              color: act === a.n ? C.bg : C.text, border: "none", borderRadius: 8, cursor: "pointer",
+              fontWeight: act === a.n ? 800 : 500, fontSize: 13, transition: "all 0.25s" }}>
+            <div style={{ fontSize: 10, opacity: 0.7 }}>Act {a.n}</div>
+            <div>{a.t}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const Studio = () => (
+    <div style={{ padding: "16px 14px" }}>
+      <div style={{ background: `linear-gradient(90deg, ${C.panel} 0%, ${C.panel2} 100%)`, padding: 14, borderRadius: 12, marginBottom: 14, borderLeft: `3px solid ${C.gold}` }}>
+        <div style={{ fontSize: 14, fontWeight: 700 }}>欢迎来到 OTIA 片场！</div>
+        <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>点击每个工位认识一位候选人。全部点亮后可以进入第二幕。</div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+        {ROLES.map((r) => {
+          const open = expanded === r.id;
+          const done = explored.has(r.id);
+          const Icon = r.Icon;
+          return (
+            <div key={r.id} onClick={() => { setExpanded(open ? null : r.id); setExplored((s) => new Set([...s, r.id])); }}
+              style={{ position: "relative", background: done ? `linear-gradient(135deg, ${r.color}22, ${C.panel})` : C.panel,
+                borderRadius: 14, padding: 14, cursor: "pointer", border: `1px solid ${done ? r.color : "rgba(255,255,255,0.08)"}`,
+                boxShadow: done ? `0 0 0 1px ${r.color}44, 0 4px 18px rgba(0,0,0,0.35)` : "0 2px 8px rgba(0,0,0,0.25)",
+                transition: "all 0.3s", transform: open ? "scale(1.02)" : "scale(1)" }}>
+              {done && <div style={{ position: "absolute", top: 8, right: 8, background: C.gold, color: C.bg, width: 18, height: 18, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800 }}>✓</div>}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 10, background: `${r.color}33`, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${r.color}` }}>
+                  <Icon size={22} color={r.color} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 800 }}>{r.emoji} {r.zh}</div>
+                  <div style={{ fontSize: 10, color: C.muted, letterSpacing: 0.5 }}>{r.en}</div>
+                </div>
+              </div>
+              {open ? (
+                <div style={{ fontSize: 12, lineHeight: 1.7, color: C.cream }}>
+                  <div style={{ borderTop: `1px dashed ${r.color}66`, paddingTop: 8, marginBottom: 8 }}>
+                    <div style={{ fontSize: 10, color: r.color, fontWeight: 700, marginBottom: 4 }}>🎯 代表职责 · DUTIES</div>
+                    {r.duties.map((d, i) => <div key={i} style={{ paddingLeft: 8, borderLeft: `2px solid ${r.color}`, marginBottom: 4 }}>· {d}</div>)}
+                  </div>
+                  <div style={{ background: `${C.gold}22`, borderLeft: `3px solid ${C.gold}`, padding: "8px 10px", borderRadius: 6, marginBottom: 8 }}>
+                    <div style={{ fontSize: 10, color: C.gold, fontWeight: 700, marginBottom: 2 }}>💡 我的价值 · VALUE</div>
+                    <div style={{ fontSize: 12 }}>{r.value}</div>
+                  </div>
+                  <div style={{ fontSize: 11, color: C.muted }}>🎒 代表道具：{r.prop}</div>
+                </div>
+              ) : (
+                <div style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>
+                  {done ? "已认识 · 点击复习" : "点击认识 TA"}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ marginTop: 18, display: "flex", gap: 10 }}>
+        <button onClick={() => { if (explored.size === ROLES.length) setAct(2); else showToast(`还有 ${ROLES.length - explored.size} 位未认识`); }}
+          style={{ flex: 1, padding: 14, background: explored.size === ROLES.length ? C.gold : "rgba(255,255,255,0.06)",
+            color: explored.size === ROLES.length ? C.bg : C.muted, border: "none", borderRadius: 10,
+            fontWeight: 800, fontSize: 14, cursor: explored.size === ROLES.length ? "pointer" : "not-allowed" }}>
+          进入第二幕 · 紧急求助 →
+        </button>
+      </div>
+    </div>
+  );
+
+  const Challenge = () => {
+    const ch = CHALLENGES[current];
+    const done = solved.has(current);
+    const RoleChip = ({ r, onClick, disabled, selected }) => {
+      const Icon = r.Icon;
+      return (
+        <button onClick={onClick} disabled={disabled}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 10px", background: selected ? r.color : `${C.panel2}`,
+            color: selected ? "#fff" : C.text, border: `1px solid ${selected ? r.color : "rgba(255,255,255,0.08)"}`,
+            borderRadius: 20, cursor: disabled ? "default" : "pointer", fontSize: 12, fontWeight: selected ? 700 : 500,
+            opacity: disabled && !selected ? 0.5 : 1, transition: "all 0.2s" }}>
+          <Icon size={14} />
+          <span>{r.zh}</span>
+        </button>
+      );
+    };
+
+    return (
+      <div style={{ padding: "16px 14px" }}>
+        <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+          {CHALLENGES.map((_, i) => (
+            <div key={i} onClick={() => { setCurrent(i); setMainGuess(null); setSubGuess(null); }}
+              style={{ flex: 1, height: 8, borderRadius: 4, cursor: "pointer",
+                background: solved.has(i) ? C.success : i === current ? C.gold : "rgba(255,255,255,0.08)" }} />
+          ))}
+        </div>
+
+        <div style={{ background: `linear-gradient(135deg, ${C.accent}22, ${C.panel})`, padding: 16, borderRadius: 14, borderLeft: `4px solid ${C.accent}`, marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: C.accent, fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>🚨 SCENE {current + 1} · 剧组求助</div>
+          <div style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.5, marginBottom: 8 }}>"{ch.q}"</div>
+          <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>💭 {ch.hint}</div>
+        </div>
+
+        <div style={{ background: C.panel, padding: 14, borderRadius: 12, marginBottom: 12, border: mainGuess ? `2px solid ${mainGuess === ch.main ? C.success : C.warn}` : `1px dashed ${C.gold}` }}>
+          <div style={{ fontSize: 12, color: C.gold, fontWeight: 700, marginBottom: 8 }}>🎯 谁来负责？ · Who is in charge?</div>
+          <div style={{ minHeight: 44, background: mainGuess ? "rgba(255,255,255,0.04)" : `${C.gold}11`, borderRadius: 8, padding: mainGuess ? 8 : 10, textAlign: "center", border: `1px dashed ${mainGuess ? "transparent" : C.gold}55` }}>
+            {mainGuess ? (
+              <RoleChip r={ROLES.find((x) => x.id === mainGuess)} selected disabled />
+            ) : (
+              <div style={{ fontSize: 12, color: C.muted }}>👇 从下方选择负责人</div>
+            )}
+          </div>
+          {mainGuess && (
+            <div style={{ marginTop: 10, padding: 10, borderRadius: 8, fontSize: 12, lineHeight: 1.6,
+              background: mainGuess === ch.main ? `${C.success}22` : `${C.warn}22`,
+              borderLeft: `3px solid ${mainGuess === ch.main ? C.success : C.warn}` }}>
+              {mainGuess === ch.main ? <span>✅ {ch.okMain}</span> : <span>💡 {ch.noMain.replace("______", ROLES.find(x=>x.id===ch.main).zh)}</span>}
+            </div>
+          )}
+        </div>
+
+        <div style={{ background: C.panel, padding: 14, borderRadius: 12, marginBottom: 14, border: subGuess ? `2px solid ${subGuess === ch.sub ? C.success : C.warn}` : `1px dashed ${C.olive}` }}>
+          <div style={{ fontSize: 12, color: C.olive, fontWeight: 700, marginBottom: 8 }}>🤝 还需要谁配合？ · Who helps?</div>
+          <div style={{ minHeight: 44, background: subGuess ? "rgba(255,255,255,0.04)" : `${C.olive}22`, borderRadius: 8, padding: subGuess ? 8 : 10, textAlign: "center", border: `1px dashed ${subGuess ? "transparent" : C.olive}55` }}>
+            {subGuess ? (
+              <RoleChip r={ROLES.find((x) => x.id === subGuess)} selected disabled />
+            ) : (
+              <div style={{ fontSize: 12, color: C.muted }}>👇 再选一位配合人</div>
+            )}
+          </div>
+          {subGuess && (
+            <div style={{ marginTop: 10, padding: 10, borderRadius: 8, fontSize: 12, lineHeight: 1.6,
+              background: subGuess === ch.sub ? `${C.success}22` : `${C.warn}22`,
+              borderLeft: `3px solid ${subGuess === ch.sub ? C.success : C.warn}` }}>
+              {subGuess === ch.sub ? <span>✅ {ch.okSub}</span> : <span>💡 配合人最好是 {ROLES.find(x=>x.id===ch.sub).zh} 哦。</span>}
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16, justifyContent: "center" }}>
+          {ROLES.map((r) => (
+            <RoleChip key={r.id} r={r} disabled={done}
+              selected={mainGuess === r.id || subGuess === r.id}
+              onClick={() => {
+                if (done) return;
+                if (!mainGuess) setMainGuess(r.id);
+                else if (!subGuess && r.id !== mainGuess) {
+                  setSubGuess(r.id);
+                  if (mainGuess === ch.main && r.id === ch.sub) {
+                    setSolved((s) => new Set([...s, current]));
+                  }
+                } else { setMainGuess(r.id); setSubGuess(null); }
+              }} />
+          ))}
+        </div>
+
+        <div style={{ display: "flex", gap: 8 }}>
+          {current > 0 && (
+            <button onClick={() => { setCurrent(current - 1); setMainGuess(null); setSubGuess(null); }}
+              style={{ padding: 12, background: "rgba(255,255,255,0.06)", color: C.text, border: "none", borderRadius: 10, fontSize: 13, cursor: "pointer" }}>← 上一题</button>
+          )}
+          <button onClick={() => {
+              if (solved.size === CHALLENGES.length) { setAct(3); return; }
+              if (current < CHALLENGES.length - 1) { setCurrent(current + 1); setMainGuess(null); setSubGuess(null); }
+              else showToast("再试试未通过的题目");
+            }}
+            style={{ flex: 1, padding: 12, background: allSolved ? C.gold : "rgba(255,255,255,0.08)",
+              color: allSolved ? C.bg : C.text, border: "none", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+            {allSolved ? "进入第三幕 · 我的剧组名片 →" : current === CHALLENGES.length - 1 ? "回头复习未通关" : "下一题 →"}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const Card = () => {
+    const chosen = myRole ? ROLES.find((r) => r.id === myRole) || ADVANCED.find((r) => r.id === myRole) : null;
+    const allRoles = [...ROLES, ...(showAdvanced ? ADVANCED : [])];
+    return (
+      <div style={{ padding: "16px 14px" }}>
+        <div style={{ background: `linear-gradient(90deg, ${C.olive}33, transparent)`, padding: 14, borderRadius: 12, marginBottom: 14, borderLeft: `3px solid ${C.olive}` }}>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>挑选你想尝试的岗位</div>
+          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>选一位，写下理由，生成你的剧组工证。</div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }}>
+          {allRoles.map((r) => {
+            const Icon = r.Icon;
+            const selected = myRole === r.id;
+            return (
+              <button key={r.id} onClick={() => setMyRole(r.id)}
+                style={{ padding: 10, background: selected ? r.color : C.panel, color: selected ? "#fff" : C.text,
+                  border: `1px solid ${selected ? r.color : "rgba(255,255,255,0.08)"}`, borderRadius: 10, cursor: "pointer",
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 4, fontSize: 11, fontWeight: selected ? 700 : 500 }}>
+                <Icon size={20} />
+                <div>{r.zh}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        {!showAdvanced && (
+          <button onClick={() => setShowAdvanced(true)}
+            style={{ width: "100%", padding: 12, background: `linear-gradient(90deg, ${C.gold}, ${C.warn})`, color: C.bg,
+              border: "none", borderRadius: 10, fontWeight: 800, fontSize: 13, cursor: "pointer", marginBottom: 14 }}>
+            🎉 解锁 4 个进阶岗位 · Unlock Advanced Crew
+          </button>
+        )}
+
+        <div style={{ background: C.panel, padding: 14, borderRadius: 12, marginBottom: 14 }}>
+          <div style={{ fontSize: 12, color: C.gold, fontWeight: 700, marginBottom: 8 }}>📝 写下你的宣言</div>
+          <input value={myName} onChange={(e) => setMyName(e.target.value)} placeholder="我的名字 / My name"
+            style={{ width: "100%", padding: 10, background: C.bg, border: `1px solid rgba(255,255,255,0.1)`, borderRadius: 8, color: C.text, fontSize: 13, marginBottom: 8, boxSizing: "border-box" }} />
+          <textarea value={myWhy} onChange={(e) => setMyWhy(e.target.value)} rows={3}
+            placeholder="我想负责 ______，因为 ______"
+            style={{ width: "100%", padding: 10, background: C.bg, border: `1px solid rgba(255,255,255,0.1)`, borderRadius: 8, color: C.text, fontSize: 13, resize: "vertical", boxSizing: "border-box" }} />
+        </div>
+
+        {chosen && (
+          <div style={{ background: `linear-gradient(135deg, ${chosen.color}22, ${C.panel} 60%, ${C.gold}22)`,
+            border: `2px solid ${chosen.color}`, borderRadius: 16, padding: 20, position: "relative", overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: -40, right: -40, width: 140, height: 140, background: `${C.gold}15`, borderRadius: "50%" }} />
+            <div style={{ position: "absolute", bottom: -30, left: -30, width: 100, height: 100, background: `${chosen.color}15`, borderRadius: "50%" }} />
+            <div style={{ position: "relative" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <div style={{ fontSize: 10, color: C.gold, fontWeight: 800, letterSpacing: 1 }}>OLIVE TREE INTL ACADEMY</div>
+                <div style={{ fontSize: 10, color: C.muted }}>CREW PASS · 剧组工证</div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
+                <div style={{ width: 72, height: 72, borderRadius: 14, background: `linear-gradient(135deg, ${chosen.color}, ${C.gold})`,
+                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36,
+                  boxShadow: `0 4px 20px ${chosen.color}66` }}>
+                  {chosen.emoji}
+                </div>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: 800 }}>{chosen.zh}</div>
+                  <div style={{ fontSize: 11, color: C.muted, letterSpacing: 0.5 }}>{chosen.en}</div>
+                  <div style={{ fontSize: 11, color: C.gold, marginTop: 4 }}>🎒 {chosen.prop}</div>
+                </div>
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.cream }}>{myName || "（你的名字）"}</div>
+              <div style={{ fontSize: 12, color: C.cream2, lineHeight: 1.6, marginTop: 6, fontStyle: "italic" }}>
+                「{myWhy || "我想负责 ______，因为 ______"}」
+              </div>
+              <div style={{ marginTop: 14, paddingTop: 10, borderTop: `1px dashed ${C.gold}44`, display: "flex", justifyContent: "space-between", fontSize: 10, color: C.muted }}>
+                <span>G5 · {new Date().toLocaleDateString("zh-CN")}</span>
+                <span style={{ color: C.gold, fontWeight: 700 }}>★ QUALIFIED CREW MEMBER ★</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ ...base, minHeight: "100vh", background: `radial-gradient(ellipse at top, ${C.panel2} 0%, ${C.bg} 60%)`,
+      display: "flex", flexDirection: "column", maxWidth: 520, margin: "0 auto" }}>
+
+      <div style={{ height: 14, background: C.bg, display: "flex", alignItems: "center", gap: 8, padding: "0 6px" }}>
+        {Array.from({ length: 22 }).map((_, i) => (
+          <div key={i} style={{ width: 10, height: 6, background: C.panel, borderRadius: 1 }} />
+        ))}
+      </div>
+
+      <Header />
+
+      <div style={{ flex: 1, overflow: "auto" }}>
+        {act === 1 && <Studio />}
+        {act === 2 && <Challenge />}
+        {act === 3 && <Card />}
+      </div>
+
+      {allSolved && act === 3 && (
+        <div style={{ padding: "14px 14px 20px" }}>
+          <div style={{ background: `linear-gradient(135deg, ${C.gold}33, ${C.panel})`, padding: 16, borderRadius: 14, border: `1px solid ${C.gold}55` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <Sparkles size={18} color={C.gold} />
+              <div style={{ fontSize: 14, fontWeight: 800 }}>🎉 彩蛋 · 4 个进阶岗位已解锁</div>
+            </div>
+            <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>真实剧组还有这些关键角色，点开看看。</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+              {ADVANCED.map((r) => {
+                const Icon = r.Icon;
+                const open = expandedAdv === r.id;
+                return (
+                  <div key={r.id} onClick={() => setExpandedAdv(open ? null : r.id)}
+                    style={{ background: open ? `linear-gradient(135deg, ${r.color}33, ${C.panel})` : C.panel,
+                      padding: 12, borderRadius: 12, cursor: "pointer", border: `1px solid ${open ? r.color : "rgba(255,255,255,0.08)"}` }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: open ? 8 : 0 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: `${r.color}33`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Icon size={16} color={r.color} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 800 }}>{r.emoji} {r.zh}</div>
+                        <div style={{ fontSize: 9, color: C.muted }}>{r.en}</div>
+                      </div>
+                    </div>
+                    {open && (
+                      <div style={{ fontSize: 11, lineHeight: 1.7, color: C.cream, borderTop: `1px dashed ${r.color}66`, paddingTop: 8 }}>
+                        {r.duties.map((d, i) => <div key={i}>· {d}</div>)}
+                        <div style={{ marginTop: 8, padding: 6, background: `${C.gold}22`, borderRadius: 6, fontSize: 11, color: C.gold }}>
+                          💡 {r.value}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+          background: C.panel2, color: C.text, padding: "10px 18px", borderRadius: 20, fontSize: 12,
+          border: `1px solid ${C.gold}`, boxShadow: "0 8px 24px rgba(0,0,0,0.5)", zIndex: 100 }}>
+          {toast}
+        </div>
+      )}
+
+      <div style={{ padding: "8px 14px 14px", background: C.bg, borderTop: `1px solid rgba(255,255,255,0.05)`, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 10, color: C.muted }}>
+        <div>OTIA · IB PYP · G5 UOI</div>
+        <button onClick={reset} style={{ background: "none", border: "none", color: C.muted, fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+          <RotateCcw size={11} /> 重置进度
+        </button>
+      </div>
+
+      <div style={{ height: 14, background: C.bg, display: "flex", alignItems: "center", gap: 8, padding: "0 6px" }}>
+        {Array.from({ length: 22 }).map((_, i) => (
+          <div key={i} style={{ width: 10, height: 6, background: C.panel, borderRadius: 1 }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<FilmCrewInteractive />);
+</script>
+</body>
+</html>
